@@ -88,12 +88,14 @@ new_APIP <- function(n, prop, inds, success) {
 
 validate_APIP <- function(apip) {
   stopifnot(class(apip) == "APIP")
-  StopIfNotNumericScalar(apip$n)
-  StopIfNotNumericScalar(apip$prop)
   if (any(is.na(apip$inds))) {
+    stopifnot(is.na(apip$n))
+    stopifnot(is.na(apip$prop))
     stopifnot(length(apip$inds) == 1)
     stopifnot(!apip$success)
   } else {
+    StopIfNotNumericScalar(apip$n)
+    StopIfNotNumericScalar(apip$prop)
     stopifnot(all(apip$inds > 0))
     stopifnot(apip$success)
   }
@@ -137,12 +139,18 @@ GetAPIPForQOI <- function(qoi, signal) {
     if (signal == 0) {
       return(APIP(n_drop=0, num_obs=num_obs, inds_drop=c()))
     }
-    n_vec <- 1:length(qoi_sign$infl_cumsum)
-    # TODO: do this more efficiently using your own routine, since
-    # we know that infl_cumsum is increasing?
-    n_drop <- approx(x=-1 * c(0, qoi_sign$infl_cumsum),
-                     y=c(0, n_vec),
-                     xout=signal)$y %>% ceiling()
+    l <- length(qoi_sign$infl_cumsum)
+    # there are no influence scores of a particular sign
+    if (l == 0) {
+      n_drop <- NA
+    } else {
+      n_vec <- 1:l
+      # TODO: do this more efficiently using your own routine, since
+      # we know that infl_cumsum is increasing?
+      n_drop <- approx(x=-1 * c(0, qoi_sign$infl_cumsum),
+                       y=c(0, n_vec),
+                       xout=signal)$y %>% ceiling()
+    }
     if (is.na(n_drop)) {
         drop_inds <- NA
     } else if (n_drop == 0) {
